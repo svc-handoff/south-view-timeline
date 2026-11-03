@@ -3454,10 +3454,21 @@ function buildControls() {
   chips.innerHTML = '<button class="chip on" data-g="">All</button>' + THEME_ORDER.map(function (t) {
     return '<button class="chip" data-g="' + esc(t) + '" style="--c:' + GROUPS[t][0] + '"><i></i>' + esc(t) + '</button>'; }).join('');
   chips.querySelectorAll('.chip').forEach(function (c) { c.addEventListener('click', function () { render(c.getAttribute('data-g')); }); });
-  var sel = document.getElementById('who');
-  sel.innerHTML = '<option value="">Choose a name…</option>' + PEOPLE.slice().sort(function (a, b) {
-    return a.name.replace(/^Dr\.?\s+/, '').localeCompare(b.name.replace(/^Dr\.?\s+/, '')); })
-    .map(function (p) { return '<option value="' + p.id + '">' + esc(p.name) + '</option>'; }).join('');
+  fillWho('');
+}
+function lastNameKey(n){
+  var s=n.replace(/[“”"][^“”"]*[“”"]/g,' ').replace(/\([^)]*\)/g,' ')
+         .replace(/,?\s+(Jr\.?|Sr\.?|II|III|IV)\s*$/i,'').replace(/^(Dr|Rev|Mrs|Mr|Ms|Bishop)\.?\s+/i,'').trim();
+  var w=s.split(/\s+/); var last=w[w.length-1]||n;
+  return (last+' '+w.slice(0,-1).join(' ')).toLowerCase();
+}
+function fillWho(filter){
+  var sel=document.getElementById('who'), keep=sel.value;
+  var list=PEOPLE.filter(function(p){return !filter||p.g===filter;}).sort(function(a,b){
+    return lastNameKey(a.name).localeCompare(lastNameKey(b.name)) || a.name.localeCompare(b.name); });
+  sel.innerHTML='<option value="">'+(filter?'Choose a name ('+list.length+' in '+esc(filter)+')…':'Choose a name…')+'</option>'+
+    list.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>';}).join('');
+  sel.value=list.some(function(p){return p.id===keep;})?keep:'';
 }
 
 // ---------------- Timeline ----------------
@@ -3502,7 +3513,7 @@ function rowsNeeded(list, pxPerYear){
 }
 var navShown = true, layout = {story: 480, nav: 300};
 function render(filter, focus){
-  current=filter;
+  current=filter; fillWho(filter);
   document.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on', c.getAttribute('data-g')===filter);});
   var b=buildData(filter);
   b.data.events.sort(function(x,y){return x.start_date.year-y.start_date.year;});
